@@ -24,11 +24,13 @@ from ..geometry import star_dist3D, polyhedron_to_label
 from ..rays3d import Rays_GoldenSpiral, rays_from_json
 from ..nms import non_maximum_suppression_3d
 
+from scipy.ndimage.measurements import mean, maximum
 
 
 class StarDistData3D(StarDistDataBase):
 
-    def __init__(self, X, Y, batch_size, rays, patch_size=(128,128,128), grid=(1,1,1), anisotropy=None, augmenter=None, foreground_prob=0, **kwargs):
+    def __init__(self, X, Y, batch_size, rays, patch_size=(128,128,128), grid=(1,1,1), anisotropy=None, augmenter=None,
+                 foreground_prob=0, addon=True, **kwargs):
         # TODO: support shape completion as in 2D?
 
         super().__init__(X=X, Y=Y, n_rays=len(rays), grid=grid,
@@ -38,6 +40,7 @@ class StarDistData3D(StarDistDataBase):
         self.rays = rays
         self.anisotropy = anisotropy
         self.sd_mode = 'opencl' if self.use_gpu else 'cpp'
+        self.addon = addon
 
         # re-use arrays
         if self.batch_size > 1:
@@ -74,6 +77,21 @@ class StarDistData3D(StarDistDataBase):
         else:
             prob = np.stack(tmp, out=self.out_edt_prob[:len(Y)])
 
+        if self.addon:
+            labels =  [np.arange(0, np.max(lbl)+1) for lbl in Y] 
+
+            coords = [np.mgrid[tuple(slice(0, s) for s in lbl.shape)] for lbl in Y]
+
+            cmi = [np.asarray([mean(coord[i], lbl, l) for i in range(lbl.ndim)]) for coord, lbl, l in zip(coords, Y, labels)]
+            cmi_vals = [cm[:, lbl] for cm, lbl in zip(cmi, Y)]
+
+            dist_ = [np.linalg.norm(cmi_val - coord, axis=0) for cmi_val, coord in zip(cmi_vals, coords)]
+            dist_max =  [maximum(d, lbl, l) for d, lbl, l in zip(dist_, Y, labels)]
+            dist_ = [1- np.divide(d, d_max[lbl]) for d, d_max, lbl in zip(dist_, dist_max, Y)]
+            dist_ = [np.where(lbl == 0 , 0, d + 0.2) for lbl, d  in zip(Y, dist_ )]
+            
+            prob = [np.multiply(p, d) for p, d in zip(prob, dist_)]    
+            
         tmp = [star_dist3D(lbl, self.rays, mode=self.sd_mode) for lbl in Y]
         if len(Y) == 1:
             dist = tmp[0][np.newaxis]
