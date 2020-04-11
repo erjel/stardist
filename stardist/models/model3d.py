@@ -87,8 +87,8 @@ class StarDistData3D(StarDistDataBase):
 
             dist_ = [np.linalg.norm(cmi_val - coord, axis=0) for cmi_val, coord in zip(cmi_vals, coords)]
             dist_max =  [maximum(d, lbl, l) for d, lbl, l in zip(dist_, Y, labels)]
-            dist_ = [1- np.divide(d, d_max[lbl]) for d, d_max, lbl in zip(dist_, dist_max, Y)]
-            dist_ = [np.where(lbl == 0 , 0, d + 0.2) for lbl, d  in zip(Y, dist_ )]
+            dist_ = [1- np.divide(d, d_max[lbl]+1e-8) for d, d_max, lbl in zip(dist_, dist_max, Y)]
+            dist_ = [np.where(lbl == 0 , 0, d) for lbl, d  in zip(Y, dist_ )]
             
             prob = [np.multiply(p, d) for p, d in zip(prob, dist_)]    
             
