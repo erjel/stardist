@@ -37,7 +37,7 @@ def generic_masked_loss(mask, loss, weights=1, norm_by_mask=True, reg_weight=0, 
     return _loss
 
 def masked_loss(mask, penalty, reg_weight, norm_by_mask):
-    loss = lambda y_true, y_pred: penalty(y_true - y_pred)
+    loss = lambda y_true, y_pred: penalty(y_true * (y_true - y_pred))
     return generic_masked_loss(mask, loss, reg_weight=reg_weight, norm_by_mask=norm_by_mask)
 
 # TODO: should we use norm_by_mask=True in the loss or only in a metric?
