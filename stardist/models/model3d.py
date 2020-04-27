@@ -269,6 +269,7 @@ class Config3D(BaseConfig):
         self.train_reduce_lr           = {'factor': 0.5, 'patience': 40, min_delta_key: 0}
 
         self.use_gpu                   = False
+        self.addon                     = True
 
         # remove derived attributes that shouldn't be overwritten
         for k in ('n_dim', 'n_channel_out', 'n_rays', 'rays_json'):
@@ -462,6 +463,7 @@ class StarDist3D(StarDistBase):
             anisotropy      = self.config.anisotropy,
             use_gpu         = self.config.use_gpu,
             foreground_prob = self.config.train_foreground_only,
+            addon           = self.config.addon
         )
 
         # generate validation data and store in numpy arrays
